@@ -1,0 +1,371 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detection Result | DeepFake Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .theme-fake {
+            --result-color: var(--color-fake);
+            --result-glow: var(--color-fake-glow);
+        }
+        
+        .theme-real {
+            --result-color: var(--color-real);
+            --result-glow: var(--color-real-glow);
+        }
+
+        .result-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .result-card {
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 40px var(--result-glow);
+        }
+
+        /* The glowing border effect */
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: var(--result-color);
+            z-index: -1;
+            filter: blur(10px);
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .result-header-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            padding: 2.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .analysis-result, .analysis-summary {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .result-title-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .result-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            background: var(--result-glow);
+        }
+
+        .result-icon svg {
+            width: 28px;
+            height: 28px;
+            color: var(--result-color);
+        }
+
+        .result-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .result-label {
+            color: var(--text-main);
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .result-value {
+            color: var(--result-color);
+            font-size: 1.8rem;
+            font-weight: 800;
+            text-transform: capitalize;
+            line-height: 1;
+        }
+
+        .confidence-section {
+            width: 100%;
+        }
+
+        .confidence-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .confidence-label { color: var(--text-main); font-weight: 500;}
+        .confidence-val { color: var(--result-color); font-weight: 700;}
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--result-color);
+            border-radius: 6px;
+            transition: width 1s ease-out;
+            box-shadow: 0 0 10px var(--result-color);
+        }
+
+        /* Summary Box */
+        .summary-box {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            height: 100%;
+            position: relative;
+        }
+        
+        .summary-title {
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #60a5fa;
+            margin-bottom: 1rem;
+        }
+
+        .summary-title svg {
+            width: 18px; height: 18px; margin-right: 8px;
+        }
+
+        .summary-text {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--result-color);
+            margin-right: 8px;
+            box-shadow: 0 0 8px var(--result-color);
+        }
+
+        /* Frame Analysis section */
+        .frame-analysis {
+            padding: 2rem 2.5rem;
+        }
+
+        .frame-header {
+            display: flex;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .frame-header svg {
+            width: 20px; height: 20px; margin-right: 10px; color: #60a5fa;
+        }
+
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .carousel-track {
+            display: flex;
+            gap: 1rem;
+            transition: transform 0.5s ease;
+            width: max-content;
+        }
+
+        .frame-item {
+            position: relative;
+            width: 150px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .frame-item:hover {
+            border-color: #60a5fa;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .frame-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+
+        .frame-label {
+            position: absolute;
+            bottom: 4px; right: 4px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* Footer actions */
+        .result-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .action-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+        }
+
+        .info-row svg {
+            width: 16px; height: 16px; margin-right: 6px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .result-header-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+    </style>
+</head>
+<body class="theme-{{ result }}">
+
+    <div class="mt-8 text-center" style="margin-bottom: 2rem;">
+        <h1><span class="gradient-text">Detection Result</span></h1>
+    </div>
+
+    <div class="container result-container">
+        <div class="result-card">
+            
+            <div class="result-header-grid">
+                <!-- Left: Analysis Result -->
+                <div class="analysis-result">
+                    <div class="result-title-row">
+                        <div class="result-icon">
+                            {% if result == 'real' %}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {% else %}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            {% endif %}
+                        </div>
+                        <div class="result-text">
+                            <span class="result-label">Analysis Result</span>
+                            <span class="result-value">{{ result }}</span>
+                        </div>
+                    </div>
+
+                    <div class="confidence-section mt-4">
+                        <div class="confidence-header">
+                            <span class="confidence-label">Confidence Score</span>
+                            <span class="confidence-val">{{ confidence }}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ confidence }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Summary -->
+                <div class="analysis-summary">
+                    <div class="summary-box">
+                        <div class="summary-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                            </svg>
+                            Analysis Summary
+                        </div>
+                        <p class="summary-text">
+                            {% if result == 'real' %}
+                            This media appears to be authentic with a {{ confidence }}% confidence score. Our AI system detected consistent facial patterns and lighting across all analyzed frames.
+                            {% else %}
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #60a5fa;
+            margin-bottom: 1rem;
+        }
+
+        .summary-title svg {
+            width: 18px; height: 18px; margin-right: 8px;
+        }
+
+        .summary-text {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--result-color);
+            margin-right: 8px;
+            box-shadow: 0 0 8px var(--result-color);
+        }
+
